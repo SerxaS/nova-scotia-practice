@@ -1027,7 +1027,9 @@ name = "sonobe-practice"
 version = "0.1.0"
 dependencies = [
  "nova-scotia",
+ "nova-snark",
  "pasta_curves",
+ "serde_json",
 ]
 
 [[package]]
