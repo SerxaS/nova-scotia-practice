@@ -63,7 +63,7 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     .unwrap();
     println!("RecursiveSNARK creation took {:?}", start.elapsed());
 
-    // TODO: empty?
+    // TODO: empty??
     let z0_secondary = [F::<G2>::from(0)];
 
     // verify the recursive SNARK
