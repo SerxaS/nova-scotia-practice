@@ -1,11 +1,10 @@
 [package]
-name = "sonobe-practice"
+name = "nova-scotia-practice"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 nova-scotia = "0.5.0"
-pasta_curves = "0.5"
 nova-snark = "0.23.0"
-serde_json = "1.0.85"
-
+pasta_curves = "0.5"
+serde_json = "1.0.105"

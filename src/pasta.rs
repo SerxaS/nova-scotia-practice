@@ -6,9 +6,9 @@ use nova_scotia::{
 use nova_snark::{CompressedSNARK, PublicParams};
 use serde_json::json;
 
-fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
-    type G1 = pasta_curves::pallas::Point;
-    type G2 = pasta_curves::vesta::Point;
+pub fn run_pasta(circuit_filepath: String, witness_gen_filepath: String) {
+    type G1 = pasta_curves::vesta::Point;
+    type G2 = pasta_curves::pallas::Point;
 
     println!(
         "Running test with witness generator: {} and group: {}",
@@ -17,12 +17,12 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     );
     let iteration_count = 5;
     let root = current_dir().unwrap();
-
     let circuit_file = root.join(circuit_filepath);
     let r1cs = load_r1cs::<G1, G2>(&FileLocation::PathBuf(circuit_file));
     let witness_generator_file = root.join(witness_gen_filepath);
 
     let mut private_inputs = Vec::new();
+    
     for i in 0..iteration_count {
         let mut private_input = HashMap::new();
         private_input.insert("adder".to_string(), json!(i));
@@ -54,8 +54,8 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     println!("Creating a RecursiveSNARK...");
     let start = Instant::now();
     let recursive_snark = create_recursive_circuit(
-        FileLocation::PathBuf(witness_generator_file),
-        r1cs,
+        FileLocation::PathBuf(witness_generator_file.clone()),
+        r1cs.clone(),
         private_inputs,
         start_public_input.to_vec(),
         &pp,
@@ -63,10 +63,8 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     .unwrap();
     println!("RecursiveSNARK creation took {:?}", start.elapsed());
 
-    // TODO: empty??
     let z0_secondary = [F::<G2>::from(0)];
 
-    // verify the recursive SNARK
     println!("Verifying a RecursiveSNARK...");
     let start = Instant::now();
     let res = recursive_snark.verify(&pp, iteration_count, &start_public_input, &z0_secondary);
@@ -77,10 +75,13 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     );
     assert!(res.is_ok());
 
-    // produce a compressed SNARK
+    let z_last = res.unwrap().0;
+
+    assert_eq!(z_last[0], F::<G1>::from(20));
+    assert_eq!(z_last[1], F::<G1>::from(70));
+
     println!("Generating a CompressedSNARK using Spartan with IPA-PC...");
     let start = Instant::now();
-
     let (pk, vk) = CompressedSNARK::<_, _, _, _, S<G1>, S<G2>>::setup(&pp).unwrap();
     let res = CompressedSNARK::<_, _, _, _, S<G1>, S<G2>>::prove(&pp, &pk, &recursive_snark);
     println!(
@@ -91,7 +92,6 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
     assert!(res.is_ok());
     let compressed_snark = res.unwrap();
 
-    // verify the compressed SNARK
     println!("Verifying a CompressedSNARK...");
     let start = Instant::now();
     let res = compressed_snark.verify(
@@ -106,11 +106,4 @@ fn run_test(circuit_filepath: String, witness_gen_filepath: String) {
         start.elapsed()
     );
     assert!(res.is_ok());
-}
-
-fn main() {
-    let circuit_filepath = format!("circuit_files/nova_1.r1cs");
-    let witness_gen_filepath = format!("circuit_files/nova_1.wasm");
-
-    run_test(circuit_filepath, witness_gen_filepath);
 }
