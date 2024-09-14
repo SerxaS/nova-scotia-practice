@@ -7,10 +7,7 @@ use nova_scotia::{
 use nova_snark::{provider, CompressedSNARK, PublicParams};
 use serde_json::json;
 
-pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String) {
-    /*
-    1. Define the curve cycle that we want to use. We will use the bn256/grumpkin curve cycle.
-    */
+pub fn poseidon(circuit_filepath: String, witness_gen_filepath: String) {
     type G1 = provider::bn256_grumpkin::bn256::Point;
     type G2 = provider::bn256_grumpkin::grumpkin::Point;
 
@@ -20,55 +17,25 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
         std::any::type_name::<G1>()
     );
 
-    /*
-    2. Load the r1cs and witness generator files.
-    */
     let root = current_dir().unwrap();
     let circuit_file = root.join(circuit_filepath);
     let r1cs = load_r1cs::<G1, G2>(&FileLocation::PathBuf(circuit_file));
     let witness_generator_file = root.join(witness_gen_filepath);
 
-    /*
-    3. Setuping the private auxiliary inputs that we will use when folding. They are two public
-       inputs at each folding steps (step_in[0], step_in[1], step_in[2]) and adder is the private
-       input (auxiliary input) that we have.
-
-
-            step_out[0] <== step_in[0] + step_in[1] + adder;
-            step_out[1] <== step_in[0] + step_in[1] + step_in[2] + adder;
-            step_out[2] <== step_in[0] + step_in[1] + step_in[2];
-
-                step_in[0]   step_in[1]   step_in[2]   adder
-                    4            7            8          9   <-- inputs
-                    20           28           19         9
-                    57           76           67         9
-                    142          209          200        9
-                    360          560          551        -    <-- state of things when we output
-                                                                 results
-    */
-    let iteration_count = 4;
-    let adder = 9;
+    let iteration_count = 1;
+    let priv_hash_input = 9;
     let mut private_inputs = Vec::new();
 
     for _ in 0..iteration_count {
         let mut private_input = HashMap::new();
-        private_input.insert("adder".to_string(), json!(adder));
+        private_input.insert("priv_hash_input".to_string(), json!(priv_hash_input));
         private_inputs.push(private_input);
     }
 
-    /*
-    4. Set the starting public inputs that we are going to use. (step_in[0], step_in[1])
-    */
-    let start_public_input = [F::<G1>::from(4), F::<G1>::from(7), F::<G1>::from(8)];
+    let start_public_input = [F::<G1>::from(5), F::<G1>::from(77)];
 
-    /*
-    5. Create the public parameters for the recursive snark.
-    */
     let pp: PublicParams<G1, G2, _, _> = create_public_params(r1cs.clone());
 
-    /*
-    6. We can print some info about the recursive snark that we are building
-    */
     println!(
         "Number of constraints per step (primary circuit): {}",
         pp.num_constraints().0
@@ -89,9 +56,6 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
         pp.num_variables().1
     );
 
-    /*
-    7. Create the recursive snark.
-    */
     println!("Creating a RecursiveSNARK...");
     let start = Instant::now();
     let recursive_snark = create_recursive_circuit(
@@ -104,12 +68,8 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
     .unwrap();
     println!("RecursiveSNARK creation took {:?}", start.elapsed());
 
-    /*
-    8. Verify it
-    */
     let z0_secondary = [F::<G2>::from(0)];
 
-    // Verify the recursive SNARK
     println!("Verifying a RecursiveSNARK...");
     let start = Instant::now();
     let res = recursive_snark.verify(&pp, iteration_count, &start_public_input, &z0_secondary);
@@ -120,15 +80,6 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
     );
     assert!(res.is_ok());
 
-    let z_last = res.unwrap().0;
-
-    assert_eq!(z_last[0], F::<G1>::from(360));
-    assert_eq!(z_last[1], F::<G1>::from(560));
-    assert_eq!(z_last[2], F::<G1>::from(551));
-
-    /*
-    9. The proof is quite large... so we will compress it using SPARTAN.
-    */
     println!("Generating a CompressedSNARK using Spartan with IPA-PC...");
     let start = Instant::now();
     let (pk, vk) = CompressedSNARK::<_, _, _, _, S<G1>, S<G2>>::setup(&pp).unwrap();
@@ -141,9 +92,6 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
     assert!(res.is_ok());
     let compressed_snark = res.unwrap();
 
-    /*
-    10. Verify the compressed snark
-    */
     println!("Verifying a CompressedSNARK...");
     let start = Instant::now();
     let res = compressed_snark.verify(
@@ -160,12 +108,12 @@ pub fn run_bn254_3inputs(circuit_filepath: String, witness_gen_filepath: String)
     assert!(res.is_ok());
 
     /*
+    You can check results from https://zkrepl.dev/
     Ensure that you get the following output in your terminal
     RecursiveSNARK::verify: Ok(([
-        0x0000000000000000000000000000000000000000000000000000000000000168,
-        0x0000000000000000000000000000000000000000000000000000000000000230,
-        0x0000000000000000000000000000000000000000000000000000000000000227],
-        [0x0000000000000000000000000000000000000000000000000000000000000000]
+        0x0d488bfc9bfd9fedd864dc2c2af3b933a154f7f49e755c88a95726e5f5772728,
+        0x2866bbedf6286dec83eafaa4d538843e3cf170389d1732875bb943fb25081fab],
+       [0x0000000000000000000000000000000000000000000000000000000000000000]
     ))
     */
 }
