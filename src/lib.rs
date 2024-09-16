@@ -1,5 +1,6 @@
 mod bn254_2inputs;
 mod bn254_3inputs;
+mod eddsaposeidon;
 mod pasta_2inputs;
 mod poseidon;
 
