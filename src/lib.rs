@@ -1,8 +1,10 @@
 mod bn254_2inputs;
 mod bn254_3inputs;
 mod eddsaposeidon;
+mod eddsaposeidonnova;
 mod pasta_2inputs;
 mod poseidon;
+mod poseidon_2_priv_inputs;
 
 #[cfg(test)]
 mod test {
@@ -10,6 +12,7 @@ mod test {
     use crate::bn254_3inputs::run_bn254_3inputs;
     use crate::pasta_2inputs::run_pasta_2inputs;
     use crate::poseidon::poseidon;
+    use crate::poseidon_2_priv_inputs::poseidon_2_priv_inputs;
 
     #[test]
     fn test_bn254_2inputs_folding() {
@@ -50,6 +53,17 @@ mod test {
         let witness_gen_filepath = "circuits/poseidon/poseidon_hash.wasm";
 
         poseidon(
+            circuit_filepath.to_string().clone(),
+            witness_gen_filepath.to_string(),
+        );
+    }
+
+    #[test]
+    fn poseidon_2_priv_inputs_test() {
+        let circuit_filepath = "circuits/poseidon_2_priv_inputs/poseidon_2_priv_inputs.r1cs";
+        let witness_gen_filepath = "circuits/poseidon_2_priv_inputs/poseidon_2_priv_inputs.wasm";
+
+        poseidon_2_priv_inputs(
             circuit_filepath.to_string().clone(),
             witness_gen_filepath.to_string(),
         );
