@@ -68,4 +68,10 @@ mod test {
             witness_gen_filepath.to_string(),
         );
     }
+
+    #[test]
+    fn eddsa_circom_test() {
+        let circuit_filepath = "circuits/poseidon_2_priv_inputs/poseidon_2_priv_inputs.r1cs";
+        let witness_gen_filepath = "circuits/poseidon_2_priv_inputs/poseidon_2_priv_inputs.wasm";
+    }
 }
