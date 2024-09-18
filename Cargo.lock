@@ -934,6 +934,7 @@ dependencies = [
  "digest",
  "nova-scotia",
  "nova-snark",
+ "num-bigint 0.4.6",
  "pasta_curves",
  "rand_core",
  "serde_json",
