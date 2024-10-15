@@ -1,7 +1,5 @@
 mod bn254_2_inputs;
 mod bn254_3_inputs;
-mod eddsa_poseidon;
-mod eddsa_poseidon_nova;
 mod pasta_2_inputs;
 mod poseidon;
 mod poseidon_2_priv_inputs;
@@ -10,7 +8,6 @@ mod poseidon_2_priv_inputs;
 mod test {
     use crate::bn254_2_inputs::run_bn254_2inputs;
     use crate::bn254_3_inputs::run_bn254_3inputs;
-    use crate::eddsa_poseidon_nova::{eddsa_circom, EddsaCircom};
     use crate::pasta_2_inputs::run_pasta_2inputs;
     use crate::poseidon::poseidon;
     use crate::poseidon_2_priv_inputs::poseidon_2_priv_inputs;
@@ -68,16 +65,5 @@ mod test {
             circuit_filepath.to_string().clone(),
             witness_gen_filepath.to_string(),
         );
-    }
-
-    #[test]
-    fn eddsa_circom_test() {
-        let circuit_filepath = "circuits/eddsa/eddsa_poseidon.r1cs";
-        let witness_gen_filepath = "circuits/eddsa/eddsa_poseidon.wasm";
-
-        eddsa_circom(
-            circuit_filepath.to_string().clone(),
-            witness_gen_filepath.to_string(),
-        );
-    }
+    }   
 }
